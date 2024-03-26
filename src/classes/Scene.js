@@ -125,14 +125,52 @@ export default class Scene {
 	setupSmoothScrolling() {
 		// Create the scrollSmoother before your scrollTriggers
 		ScrollSmoother.create({
-			smooth: 1, // How long (in seconds) it takes to "catch up" to the native scroll position
+			smooth: 2, // How long (in seconds) it takes to "catch up" to the native scroll position
 			effects: true, // Looks for data-speed and data-lag attributes on elements
-			smoothTouch: 0.1 // Much shorter smoothing time on touch devices (default is NO smoothing on touch devices)
+			smoothTouch: 0 // Much shorter smoothing time on touch devices (default is NO smoothing on touch devices)
 		});
 	}
 
 	setupScrollAnimations() {
-		console.log('test');
+		// Set containers list
+		const containerIdsList = [
+			'container-1',
+			'container-2',
+			'container-3',
+			'container-4',
+			'container-5',
+			'container-6',
+			'container-7'
+		];
+
+		containerIdsList.forEach((id) => {
+			// Set end offset
+			const endOffset = 1000;
+
+			// Set timeline
+			const timeline = gsap.timeline({
+				scrollTrigger: {
+					trigger: '#' + id,
+					pin: true,
+					markers: true,
+					start: 'top top',
+					end: '+=' + endOffset,
+					scrub: 1,
+					snap: {
+						snapTo: 'labels', // snap to the closest label in the timeline
+						duration: { min: 0.2, max: 3 }, // the snap animation should be at least 0.2 seconds, but no more than 3 seconds (determined by velocity)
+						delay: 0.2, // wait 0.2 seconds from the last scroll event before doing the snapping
+						ease: 'power1.inOut' // the ease of the snap animation ("power3" by default)
+					}
+				}
+			});
+
+			// add animations and labels to the timeline
+			timeline
+				.addLabel(id)
+				.from('#' + id + ' p', { scale: 0.3, rotation: 45, autoAlpha: 0 })
+				.addLabel('end');
+		});
 	}
 
 	animate() {
