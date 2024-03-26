@@ -1,26 +1,28 @@
 import * as THREE from 'three';
+import { gsap } from 'gsap';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader';
-import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { ScrollSmoother } from 'gsap/ScrollSmoother';
 
 gsap.registerPlugin(ScrollTrigger, ScrollSmoother);
 
 export default class Scene {
-	constructor(canvasId) {
+	constructor(canvasId, assets, loadPercentage) {
 		// Set variables
+		this.assets = assets;
+		this.loadPercentage = loadPercentage;
 		this.objects = [];
 		this.fps = 1000 / 60;
 		this.then = null;
 		this.scene = null;
 		this.camera = null;
 		this.renderer = null;
-		this.delta = 0;
 		this.canvas = document.querySelector(`#${canvasId}`);
 		this.gltfLoader = new GLTFLoader();
 		this.dracoLoader = new DRACOLoader();
 		this.gltfLoader.setDRACOLoader(this.dracoLoader);
+		this.animationMixers = [];
 
 		// Setup scene
 		this.setupScene();
@@ -54,8 +56,70 @@ export default class Scene {
 		// Setup scroll animations
 		this.setupScrollAnimations();
 
+		// Load all the models
+		await this.loadModels();
+
 		// Start render loop
 		this.animate.call(this, performance.now());
+	}
+
+	async loadModels() {
+		const loadPromises = this.assets.map((asset) => {
+			return new Promise((resolve) => {
+				this.gltfLoader.load(
+					asset.url,
+					(gltf) => {
+						// Rename using id
+						gltf.scene.name = asset.id;
+
+						//Cast shadow when necessary
+						gltf.scene.traverse((objectItem) => {
+							if (objectItem.isMesh) {
+								objectItem.receiveShadow = true;
+								objectItem.castShadow = true;
+							}
+						});
+
+						// Add to scene
+						this.scene.add(gltf.scene);
+
+						if (gltf.animations.length !== 0) {
+							const mixer = new THREE.AnimationMixer(gltf.scene);
+							this.animationMixers.push(mixer);
+
+							// Play all animation clips
+							gltf.animations.forEach((clip) => {
+								// Create te action
+								const action = mixer.clipAction(clip);
+
+								// Play
+								action.play();
+							});
+						}
+
+						// Resolve
+						resolve();
+					},
+					(xhr) => {
+						const totalLoadedPercentage = this.assets.reduce((acc, currentAsset) => {
+							return acc + (currentAsset.url === asset.url ? (xhr.loaded / xhr.total) * 100 : 0);
+						}, 0);
+						this.loadPercentage.value = totalLoadedPercentage / this.assets.length;
+						console.log('loading...', this.loadPercentage.value.toFixed(2) + '%');
+					},
+					(error) => {
+						console.error(error);
+					}
+				);
+			});
+		});
+
+		try {
+			await Promise.all(loadPromises);
+			console.log('All models loaded successfully!');
+		} catch (error) {
+			console.error('Error loading models:', error);
+		}
 	}
 
 	setupSmoothScrolling() {
@@ -72,23 +136,24 @@ export default class Scene {
 	}
 
 	animate() {
-		// Animate request frame loop
+		// Start animation loop
 		const now = Date.now();
-		this.delta = now - this.then;
+		const delta = now - this.then;
 
-		if (this.delta > this.fps) {
-			this.then = now - (this.delta % this.fps);
+		if (delta > this.fps) {
+			this.then = now - (delta % this.fps);
 
-			// Render the frame
-			this.render(this.delta);
+			//Render
+			this.render(delta / 1000);
 		}
 
-		// Request a new frame
+		//Request the animation frame
 		this.animateFrameId = requestAnimationFrame(this.animate.bind(this));
 	}
 
-	render() {
-		// Custom render logic here
+	render(time) {
+		// Update animation mixers
+		this.animationMixers.forEach((mixer) => mixer.update(time));
 
 		// Render
 		this.renderer.render(this.scene, this.camera);

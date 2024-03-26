@@ -1,10 +1,21 @@
 <script setup>
+import { ref } from 'vue';
 import ThreeJsScene from '@/components/ThreeJsScene.vue';
+import Loader from '@/components/Loader.vue';
+
+// Set variables
+const isReady = ref(false);
 </script>
 
 <template>
 	<div id="smooth-wrapper" class="relative bg-indigo-500">
-		<div id="smooth-content" class="relative z-10 h-fit w-full">
+		<Loader :show="!isReady" />
+
+		<div
+			id="smooth-content"
+			class="relative z-10 h-fit w-full transition-opacity duration-500"
+			:class="{ 'opacity-0': !isReady }"
+		>
 			<div class="h-screen w-full flex justify-center items-center">
 				<p class="text-white font-bold text-2xl">Scroll down</p>
 			</div>
@@ -38,8 +49,11 @@ import ThreeJsScene from '@/components/ThreeJsScene.vue';
 			</div>
 		</div>
 
-		<div class="absolute z-0 inset-0 h-screen w-full flex justify-center items-center">
-			<ThreeJsScene />
+		<div
+			class="absolute z-0 inset-0 h-screen w-full flex justify-center items-center transition-opacity duration-500"
+			:class="{ 'opacity-0': !isReady }"
+		>
+			<ThreeJsScene @ready="isReady = true" />
 		</div>
 	</div>
 </template>
