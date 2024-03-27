@@ -47,6 +47,9 @@ export default class Scene {
 		// Setup camera
 		this.setupCamera();
 
+		// Setup light
+		this.setupLighting();
+
 		// Bind events
 		this.bind();
 
@@ -143,9 +146,9 @@ export default class Scene {
 			'container-7'
 		];
 
-		containerIdsList.forEach((id) => {
+		containerIdsList.forEach((id, index) => {
 			// Set end offset
-			const endOffset = 1000;
+			const endOffset = 4000;
 
 			// Set timeline
 			const timeline = gsap.timeline({
@@ -165,7 +168,17 @@ export default class Scene {
 				}
 			});
 
-			// add animations and labels to the timeline
+			// Add animations and labels to the timeline
+			if (index + 1 === 1) {
+				timeline
+					.addLabel(id)
+					.from('#' + id + ' p', { scale: 0.3, rotation: 45, autoAlpha: 0 })
+					.fromTo('#three-js-canvas', { opacity: 0 }, { opacity: 1 })
+					.addLabel('end');
+
+				return;
+			}
+
 			timeline
 				.addLabel(id)
 				.from('#' + id + ' p', { scale: 0.3, rotation: 45, autoAlpha: 0 })
@@ -205,6 +218,13 @@ export default class Scene {
 
 		// Add parent to scene
 		this.scene.add(this.camera);
+	}
+
+	setupLighting() {
+		// Add ambient light
+		const light = new THREE.AmbientLight(0xffffff, 3);
+
+		this.scene.add(light);
 	}
 
 	resize() {

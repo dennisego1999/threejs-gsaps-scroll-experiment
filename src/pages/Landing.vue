@@ -46,7 +46,7 @@ const isReady = ref(false);
 			</div>
 		</div>
 
-		<div class="absolute z-0 inset-0 h-screen w-full flex justify-center items-center transition-opacity duration-500">
+		<div class="fixed z-0 inset-0 h-screen w-full flex justify-center items-center transition-opacity duration-500">
 			<ThreeJsScene @ready="isReady = true" />
 		</div>
 	</div>
