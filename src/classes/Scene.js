@@ -4,6 +4,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { ScrollSmoother } from 'gsap/ScrollSmoother';
+import { getChildren } from '@/helpers/three-js-helpers.js';
 
 gsap.registerPlugin(ScrollTrigger, ScrollSmoother);
 
@@ -23,6 +24,7 @@ export default class Scene {
 		this.dracoLoader = new DRACOLoader();
 		this.gltfLoader.setDRACOLoader(this.dracoLoader);
 		this.animationMixers = [];
+		this.plane = null;
 
 		// Setup scene
 		this.setupScene();
@@ -50,8 +52,11 @@ export default class Scene {
 		// Setup light
 		this.setupLighting();
 
-		// Bind events
-		this.bind();
+		// Load all the models
+		await this.loadModels();
+
+		// Set the object variables
+		this.setObjectVariables();
 
 		// Setup smooth scrolling
 		this.setupSmoothScrolling();
@@ -59,8 +64,8 @@ export default class Scene {
 		// Setup scroll animations
 		this.setupScrollAnimations();
 
-		// Load all the models
-		await this.loadModels();
+		// Bind events
+		this.bind();
 
 		// Start render loop
 		this.animate.call(this, performance.now());
@@ -125,6 +130,11 @@ export default class Scene {
 		}
 	}
 
+	setObjectVariables() {
+		// Set variables
+		this.plane = getChildren(this.scene, ['plane'], 'exact')[0];
+	}
+
 	setupSmoothScrolling() {
 		// Create the scrollSmoother before your scrollTriggers
 		ScrollSmoother.create({
@@ -164,6 +174,18 @@ export default class Scene {
 						duration: { min: 0.2, max: 3 }, // the snap animation should be at least 0.2 seconds, but no more than 3 seconds (determined by velocity)
 						delay: 0.2, // wait 0.2 seconds from the last scroll event before doing the snapping
 						ease: 'power1.inOut' // the ease of the snap animation ("power3" by default)
+					},
+					onUpdate: (event) => {
+						if (index + 1 !== 1) {
+							return;
+						}
+
+						// Get the scroll progress
+						const percentage = event.progress;
+
+						// Make plane fly
+						const planeTargetPosition = 15;
+						this.plane.position.z = planeTargetPosition * percentage;
 					}
 				}
 			});
@@ -172,8 +194,8 @@ export default class Scene {
 			if (index + 1 === 1) {
 				timeline
 					.addLabel(id)
-					.from('#' + id + ' p', { scale: 0.3, rotation: 45, autoAlpha: 0 })
-					.fromTo('#three-js-canvas', { opacity: 0 }, { opacity: 1 })
+					.from('#' + id + ' p', { scale: 0.3, rotation: 45, autoAlpha: 0, duration: 1 }, '0')
+					.fromTo('#three-js-canvas', { opacity: 0 }, { opacity: 1, duration: 3 }, '0.5')
 					.addLabel('end');
 
 				return;
@@ -234,14 +256,6 @@ export default class Scene {
 
 		// Set canvas size again
 		this.renderer.setSize(window.innerWidth, window.innerHeight);
-	}
-
-	lerp(value1, value2, amount) {
-		// Set amount
-		amount = amount < 0 ? 0 : amount;
-		amount = amount > 1 ? 1 : amount;
-
-		return value1 + (value2 - value1) * amount;
 	}
 
 	bind() {
